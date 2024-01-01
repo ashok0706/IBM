@@ -102,3 +102,90 @@ public class RequestParser {
         System.out.println(requestParser.parseRequest(request2));
     }
 }
+
+
+
+
+
+
+
+
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class RequestParser {
+
+    public static List<String> parseRequest(List<String> validAuthTokens, List<String[]> requests) {
+        List<String> result = new ArrayList<>();
+        
+
+        for (String[] request : requests) {
+            String requestType = request[0];
+            String url = request[1];
+
+            // Extracting authentication token from URL
+            Pattern tokenPattern = Pattern.compile("token=([^&]+)");
+            Matcher tokenMatcher = tokenPattern.matcher(url);       
+            Pattern csrfPattern = Pattern.compile("csrf=([a-z0-9]+)");
+            Matcher csrfMatcher = csrfPattern.matcher(url);
+            Pattern idPattern  = Pattern.compile("id=([a-z0-9]+)");
+            Matcher idMatcher = idPattern.matcher(url);
+            Pattern namePattern  = Pattern.compile("name=([a-z0-9]+)");
+            Matcher nameMatcher = namePattern.matcher(url);
+
+            if (tokenMatcher.find()) {
+                String authToken = tokenMatcher.group(1);
+                String csrfToken = csrfMatcher.find() ? csrfMatcher.group(1) : null;
+                String id = idMatcher.find() ? idMatcher.group(1) : null;
+                String name = nameMatcher.find() ? nameMatcher.group(1) : null;
+                
+                // Validating authentication token
+                if (validAuthTokens.contains(authToken)) {
+                    // Validating CSRF token for POST requests
+                    if (requestType.equals("POST") && csrfToken != null && csrfToken.matches("[a-z0-9]+") && csrfToken.length() >= 8) {
+                        result.add("VALID," + "id," + id + ","+ "name," + name);
+                    } else if (requestType.equals("GET")) {
+                        result.add("VALID," + "id," + id + ","+ "name," + name);
+                    } else {
+                        result.add("INVALID");
+                    }
+                } else {
+                    result.add("INVALID");
+                }
+            } else {
+                result.add("INVALID");
+            }
+        }
+
+        return result;
+    }
+
+    public static void main(String[] args) {
+        List<String> validAuthTokens = List.of("token123", "token456");
+        List<String[]> requests = List.of(
+                new String[]{"GET", "http://example.com/resource?token=token123&id=123g5&name=ashok"},
+                new String[]{"POST", "http://example.com/action?token=token456&csrf=abc+12378&id=123g578&name=ashokkkk"},
+                new String[]{"GET", "http://example.com/data?token=invalidtoken"}
+        );
+
+        List<String> result = parseRequest(validAuthTokens, requests);
+        for (String status : result) {
+            System.out.println(status);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
